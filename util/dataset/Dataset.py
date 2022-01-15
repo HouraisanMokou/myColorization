@@ -39,8 +39,8 @@ class ImageSet(VisionDataset):
     def __getitem__(self, idx):
         path=os.path.join(self.root,self.data[idx])
         img = cv2.imread(path)
+        h,w=img.shape[0],img.shape[1]
         img = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-        # print(np.max(img[:,:,0]),np.max(img[:,:,1]),np.max(img[:,:,2]))
         img = Image.fromarray(img)
         img = self.transform(img)
-        return img
+        return img,h,w

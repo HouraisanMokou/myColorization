@@ -16,12 +16,12 @@ def encode(imgs, opt):
 class Loss(nn.Module):
     def __init__(self, opt):
         super(Loss, self).__init__()
-        self.l1 = nn.L1Loss()
+        #self.l1 = nn.L1Loss()
         self.ce = nn.CrossEntropyLoss()
         self.opt = opt
 
     def forward(self, fake_dis, fake_ab, real_ab):
-        l1 = self.l1(fake_ab, real_ab)
+        l1 = torch.mean(torch.sum(torch.abs(fake_ab-real_ab), dim=1, keepdim=True))#self.l1(fake_ab, real_ab)
         en = encode(real_ab, self.opt).long()
         ce = self.ce(fake_dis, en[:, 0, :, :])
         return ce + 10 * l1, l1, ce
@@ -39,7 +39,7 @@ def eval(model, dataloader, opt,L):
                      ncols=100,
                      total=len(dataloader),
                      ):
-        data = data.to(opt.device)
+        data = data[0].to(opt.device)
         out_class, out_reg = model(data[:, [0], :, :])
         # fake_dis,fake_ab,real_ab
         loss = L(out_class, out_reg, data[:, 1:, :, :].detach())

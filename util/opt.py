@@ -12,9 +12,9 @@ def get_parser():
     parser.add_argument('--data_directory', type=str, default='./dataset', help='original data directory')
     parser.add_argument('--checkpoints_directory', type=str, default='./checkpoint', help='checkpoints directory')
 
-    #
+    #ilsvrc2012 SIGGRAPH
     parser.add_argument('--dataset_name', type=str, default='ilsvrc2012', help='the name of data set')
-    parser.add_argument('--model', type=str, default='SIGGRAPH', help='the name of model')
+    parser.add_argument('--model', type=str, default='SIGRES', help='the name of model')
 
     parser.add_argument('--stage', type=str, default='train', help='train/test')
     parser.add_argument('--logging_directory',
@@ -32,13 +32,13 @@ def get_parser():
                         help='test with a period of some epoch (-1 means no test)')
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
     parser.add_argument('--l2', type=float, default=0, help='l2 regularization in optimizer')
-    parser.add_argument('--batch_size', type=int, default=50, help='batch size while training/ validating')
+    parser.add_argument('--batch_size', type=int, default=32, help='batch size while training/ validating')
 
     # args for model
     parser.add_argument('--loadSize', type=int, default=256, help='scale images to this size')
     parser.add_argument('--fineSize', type=int, default=176, help='then crop to this size')
-    parser.add_argument('--ab_norm', type=float, default=110., help='colorization normalization factor')
-    parser.add_argument('--ab_max', type=float, default=110., help='maximimum ab value')
+    parser.add_argument('--ab_norm', type=float, default=256., help='colorization normalization factor')
+    parser.add_argument('--ab_max', type=float, default=0., help='maximimum ab value')
     parser.add_argument('--ab_quant', type=float, default=10., help='quantization factor')
 
     args, unknown = parser.parse_known_args()
@@ -50,6 +50,17 @@ def get_parser():
         '{}_{}_{}.txt'.format(args.model,
                               args.dataset_name,
                               time.strftime('%Y.%m.%d', time.localtime()))
+    ))
+    setattr(args, 'result_file_name', os.path.join(
+        args.logging_directory,
+        '{}_{}_{}.pkl'.format(args.model,
+                              args.dataset_name,
+                              time.strftime('%Y.%m.%d', time.localtime()))
+    ))
+    setattr(args, 'result_pics_path', os.path.join(
+        args.logging_directory,
+        '{}_{}'.format(args.model,
+                              args.dataset_name)
     ))
     setattr(args, 'dataset_path', os.path.join(
         args.data_directory, args.dataset_name
@@ -65,6 +76,8 @@ def get_parser():
         os.makedirs(args.checkpoints_directory)
     if not os.path.exists(args.logging_directory):
         os.makedirs(args.logging_directory)
+    if not os.path.exists(args.result_pics_path):
+        os.makedirs(args.result_pics_path)
 
     random.seed(args.random_state)
     np.random.seed(args.random_state)

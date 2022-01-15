@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
-class SIGGRAPH(nn.Module):
+class SIGRES(nn.Module):
     def __init__(self, input_nc, output_nc, norm_layer=nn.BatchNorm2d, use_tanh=True, classification=True):
-        super(SIGGRAPH, self).__init__()
+        super(SIGRES, self).__init__()
         self.input_nc = input_nc
         self.output_nc = output_nc
         self.classification = classification
@@ -14,61 +15,75 @@ class SIGGRAPH(nn.Module):
         # model1=[nn.ReflectionPad2d(1),]
         model1 = [nn.Conv2d(input_nc, 64, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         # model1+=[norm_layer(64),]
+        model1 += [nn.BatchNorm2d(64), ]
         model1 += [nn.ReLU(True), ]
         # model1+=[nn.ReflectionPad2d(1),]
         model1 += [nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
+        model1 += [nn.BatchNorm2d(64), ]
         model1 += [nn.ReLU(True), ]
         model1 += [norm_layer(64), ]
         # add a subsampling operation
+
 
         # Conv2
         # model2=[nn.ReflectionPad2d(1),]
         model2 = [nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         # model2+=[norm_layer(128),]
+        model2 += [nn.BatchNorm2d(128), ]
         model2 += [nn.ReLU(True), ]
         # model2+=[nn.ReflectionPad2d(1),]
         model2 += [nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
+        model2 += [nn.BatchNorm2d(128), ]
         model2 += [nn.ReLU(True), ]
         model2 += [norm_layer(128), ]
         # add a subsampling layer operation
+        self.down2 = nn.Conv2d(64, 128, kernel_size=1, stride=1, bias=False)
 
         # Conv3
         # model3=[nn.ReflectionPad2d(1),]
         model3 = [nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         # model3+=[norm_layer(256),]
+        model3 += [nn.BatchNorm2d(256), ]
         model3 += [nn.ReLU(True), ]
         # model3+=[nn.ReflectionPad2d(1),]
         model3 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         # model3+=[norm_layer(256),]
+        model3 += [nn.BatchNorm2d(256), ]
         model3 += [nn.ReLU(True), ]
         # model3+=[nn.ReflectionPad2d(1),]
         model3 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         model3 += [nn.ReLU(True), ]
         model3 += [norm_layer(256), ]
         # add a subsampling layer operation
+        self.down3 = nn.Conv2d(128,256, kernel_size=1, stride=1, bias=False)
 
         # Conv4
         # model47=[nn.ReflectionPad2d(1),]
         model4 = [nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         # model4+=[norm_layer(512),]
+        model4 += [nn.BatchNorm2d(512), ]
         model4 += [nn.ReLU(True), ]
         # model4+=[nn.ReflectionPad2d(1),]
         model4 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         # model4+=[norm_layer(512),]
+        model4 += [nn.BatchNorm2d(512), ]
         model4 += [nn.ReLU(True), ]
         # model4+=[nn.ReflectionPad2d(1),]
         model4 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         model4 += [nn.ReLU(True), ]
         model4 += [norm_layer(512), ]
+        self.down4 = nn.Conv2d(256, 512, kernel_size=1, stride=1, bias=False)
 
         # Conv5
         # model47+=[nn.ReflectionPad2d(2),]
         model5 = [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
         # model5+=[norm_layer(512),]
+        model5 += [nn.BatchNorm2d(512), ]
         model5 += [nn.ReLU(True), ]
         # model5+=[nn.ReflectionPad2d(2),]
         model5 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
         # model5+=[norm_layer(512),]
+        model5 += [nn.BatchNorm2d(512), ]
         model5 += [nn.ReLU(True), ]
         # model5+=[nn.ReflectionPad2d(2),]
         model5 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
@@ -79,10 +94,12 @@ class SIGGRAPH(nn.Module):
         # model6+=[nn.ReflectionPad2d(2),]
         model6 = [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
         # model6+=[norm_layer(512),]
+        model6 += [nn.BatchNorm2d(512), ]
         model6 += [nn.ReLU(True), ]
         # model6+=[nn.ReflectionPad2d(2),]
         model6 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
         # model6+=[norm_layer(512),]
+        model6 += [nn.BatchNorm2d(512), ]
         model6 += [nn.ReLU(True), ]
         # model6+=[nn.ReflectionPad2d(2),]
         model6 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
@@ -93,10 +110,12 @@ class SIGGRAPH(nn.Module):
         # model47+=[nn.ReflectionPad2d(1),]
         model7 = [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         # model7+=[norm_layer(512),]
+        model7 += [nn.BatchNorm2d(512), ]
         model7 += [nn.ReLU(True), ]
         # model7+=[nn.ReflectionPad2d(1),]
         model7 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         # model7+=[norm_layer(512),]
+        model7 += [nn.BatchNorm2d(512), ]
         model7 += [nn.ReLU(True), ]
         # model7+=[nn.ReflectionPad2d(1),]
         model7 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
@@ -110,13 +129,16 @@ class SIGGRAPH(nn.Module):
         model3short8 = [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
 
         # model47+=[norm_layer(256),]
-        model8 = [nn.ReLU(True), ]
-        # model8+=[nn.ReflectionPad2d(1),]
-        model8 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model8+=[norm_layer(256),]
+        model8 = [nn.BatchNorm2d(256), ]
         model8 += [nn.ReLU(True), ]
         # model8+=[nn.ReflectionPad2d(1),]
         model8 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
+        # model8+=[norm_layer(256),]
+        model8 += [nn.BatchNorm2d(256), ]
+        model8 += [nn.ReLU(True), ]
+        # model8+=[nn.ReflectionPad2d(1),]
+        model8 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
+        model8 += [nn.BatchNorm2d(256), ]
         model8 += [nn.ReLU(True), ]
         model8 += [norm_layer(256), ]
 
@@ -128,9 +150,11 @@ class SIGGRAPH(nn.Module):
         # add the two feature maps above
 
         # model9=[norm_layer(128),]
-        model9 = [nn.ReLU(True), ]
+        model9 = [nn.BatchNorm2d(128), ]
+        model9 += [nn.ReLU(True), ]
         # model9+=[nn.ReflectionPad2d(1),]
         model9 += [nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
+        model9 += [nn.BatchNorm2d(128), ]
         model9 += [nn.ReLU(True), ]
         model9 += [norm_layer(128), ]
 
@@ -142,7 +166,8 @@ class SIGGRAPH(nn.Module):
         # add the two feature maps above
 
         # model10=[norm_layer(128),]
-        model10 = [nn.ReLU(True), ]
+        model10 = [nn.BatchNorm2d(128), ]
+        model10 += [nn.ReLU(True), ]
         # model10+=[nn.ReflectionPad2d(1),]
         model10 += [nn.Conv2d(128, 128, kernel_size=3, dilation=1, stride=1, padding=1, bias=use_bias), ]
         model10 += [nn.LeakyReLU(negative_slope=.2), ]
@@ -184,10 +209,17 @@ class SIGGRAPH(nn.Module):
         if (mask_B is None):
             mask_B = input_A * 0
 
-        conv1_2 = self.model1(torch.cat((input_A, input_B, mask_B), dim=1))
-        conv2_2 = self.model2(conv1_2[:, :, ::2, ::2])
-        conv3_3 = self.model3(conv2_2[:, :, ::2, ::2])
-        conv4_3 = self.model4(conv3_3[:, :, ::2, ::2])
+        input=torch.cat((input_A, input_B, mask_B), dim=1)
+        conv1_2 = self.model1(input)
+        conv=F.max_pool2d(conv1_2,2)
+        conv2_2 = self.model2(conv)
+        conv2_2 = self.down2(conv)+conv2_2
+        conv=F.max_pool2d(conv2_2,2)
+        conv3_3 = self.model3(conv)
+        conv3_3 = self.down3(conv) + conv3_3
+        conv=F.max_pool2d(conv3_3,2)
+        conv4_3 = self.model4(conv)
+        conv4_3 = self.down4(conv) + conv4_3
         conv5_3 = self.model5(conv4_3)
         conv6_3 = self.model6(conv5_3)
         conv7_3 = self.model7(conv6_3)
@@ -196,9 +228,9 @@ class SIGGRAPH(nn.Module):
 
         out_class = self.model_class(conv8_3)
 
-        conv9_up = self.model9up(conv8_3.detach()) + self.model2short9(conv2_2.detach())
+        conv9_up = self.model9up(conv8_3) + self.model2short9(conv2_2)
         conv9_3 = self.model9(conv9_up)
-        conv10_up = self.model10up(conv9_3) + self.model1short10(conv1_2.detach())
+        conv10_up = self.model10up(conv9_3) + self.model1short10(conv1_2)
         conv10_2 = self.model10(conv10_up)
         out_reg = self.model_out(conv10_2)
 

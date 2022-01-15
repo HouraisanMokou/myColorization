@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 import random
 import time
 from collections import defaultdict
@@ -10,6 +11,8 @@ from PIL import Image
 import cv2
 
 from model.SIGGRAPH import SIGGRAPH
+from model.ECCV import ECCV
+from model.ADVANCED import SIGRES
 from util import opt, util
 from util.dataset.Dataset import ImageSet
 
@@ -37,21 +40,22 @@ if __name__ == '__main__':
         )
     )
 
-    path=os.path.join(opt.dataset_path, 'train')
+    path = os.path.join(opt.dataset_path, 'train')
     data = os.listdir(path)
-    dataset = ImageSet(data, opt, 'train',path)
+    dataset = ImageSet(data, opt, 'train', path)
     path = os.path.join(opt.dataset_path, 'test')
     data2 = os.listdir(path)
-    testset = ImageSet(data2, opt, 'test',path)
+    testset = ImageSet(data2, opt, 'test', path)
     path = os.path.join(opt.dataset_path, 'val')
     data3 = os.listdir(path)
-    valset = ImageSet(data3, opt, 'val',path)
+    valset = ImageSet(data3, opt, 'val', path)
 
     dataloader = DataLoader(dataset, shuffle=True, batch_size=opt.batch_size, num_workers=8)
     testloader = DataLoader(testset, shuffle=False, batch_size=opt.batch_size, num_workers=8)
     valloader = DataLoader(valset, shuffle=False, batch_size=opt.batch_size, num_workers=8)
 
-    logger.info(f'dataset has {len(dataset)} pics in train set, {len(testset)} pics in train set, {len(valset)} pics in train set')
+    logger.info(
+        f'dataset has {len(dataset)} pics in train set, {len(testset)} pics in test set, {len(valset)} pics in val set')
 
     model = eval(opt.model)(4, 2).to(opt.device)
     if opt.start_epoch > -1:
@@ -68,7 +72,7 @@ if __name__ == '__main__':
 
     # imgs_epoch = []
     results = defaultdict(list)
-
+    best_l1 = np.inf
     for e in range(opt.start_epoch + 1, opt.start_epoch + 1 + opt.epoch):
         # new_imgs = []
         model.train()
@@ -81,7 +85,7 @@ if __name__ == '__main__':
                          ncols=100,
                          total=len(dataloader),
                          ):
-            data = data.to(opt.device)
+            data = data[0].to(opt.device)
             out_class, out_reg = model(data[:, [0], :, :])
             # fake_dis,fake_ab,real_ab
             loss = L(out_class, out_reg, data[:, 1:, :, :].detach())[0]
@@ -99,9 +103,9 @@ if __name__ == '__main__':
             #     new_imgs.append(imgs[idx, :, :, :])
         used_time = time.time() - t1
         mean_loss = np.mean(loss_list)
-        torch.save(model.state_dict(), os.path.join(opt.checkpoints_prefix, f'epoch_{opt.start_epoch}'))
-        logger.info('training stage: epoch [{:3d}] [ used_time: [{:<10f}] mean-loss: [{:<10f}]]'.format(e, used_time,
-                                                                                                        mean_loss))
+        torch.save(model.state_dict(), os.path.join(opt.checkpoints_prefix, f'epoch_{e}.pth'))
+        logger.info('training stage: epoch [{:3d}] [ used_time: [{:<10f}] mean-loss: [{:<10f}]]' \
+                    .format(e, used_time, mean_loss))
         results['times_train'].append(used_time)
         results['mean_losses_train'].append(mean_loss)
 
@@ -110,6 +114,15 @@ if __name__ == '__main__':
             logger.info(
                 'validation stage: epoch [{:3d}][ used_time: [{:<10f}] mean-regression-loss: [{:<10f}]] mean-classification-loss: [{:<10f}]]'
                     .format(e, used_time, mean_l1, mean_ce))
+            if mean_l1 < best_l1:
+                best_l1 = mean_l1
+                torch.save(model.state_dict(), os.path.join(opt.checkpoints_prefix, 'best.pth'))
+                logger.info(f'new best has found in {e}')
+
+            results['times_val'].append(used_time)
+            results['mean_losses_l1_val'].append(mean_l1)
+            results['mean_losses_ce_val'].append(mean_ce)
+
         logger.info('')
         # imgs_epoch.append(new_imgs)
 
@@ -118,6 +131,12 @@ if __name__ == '__main__':
         'test stage:[ used_time: [{:<10f}] mean-regression-loss: [{:<10f}]] mean-classification-loss: [{:<10f}]]' \
             .format(used_time, mean_l1, mean_ce))
 
+    results['times_test'].append(used_time)
+    results['mean_losses_l1_test'].append(mean_l1)
+    results['mean_losses_ce_test'].append(mean_ce)
+
+    with open(opt.result_file_name, 'wb') as f:
+        pickle.dump(results, f)
     # for idx,imgs in enumerate(imgs_epoch):
     # for idx,imgs in enumerate([imgs_epoch[-1]]):
     #     for img in imgs:
