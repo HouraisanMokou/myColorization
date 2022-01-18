@@ -27,10 +27,7 @@ class ImageSet(VisionDataset):
                 transforms.ToTensor()])
         else:
             self.transform = transforms.Compose([
-                transforms.RandomChoice([transforms.Resize((opt.loadSize, opt.loadSize), interpolation=1),
-                                         transforms.Resize((opt.loadSize, opt.loadSize), interpolation=2),
-                                         transforms.Resize((opt.loadSize, opt.loadSize), interpolation=3)]),
-                transforms.RandomHorizontalFlip(),
+                transforms.Resize((opt.loadSize, opt.loadSize), interpolation=3),
                 transforms.ToTensor()])
 
     def __len__(self):
